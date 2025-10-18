@@ -76,7 +76,21 @@ def main(proc_lock):
         while not que.empty():
             fetcher_name, proxies = que.get()
             for proxy in proxies:
-                conn.pushNewFetch(fetcher_name, proxy[0], proxy[1], proxy[2])
+                # 支持多种格式：
+                # 1. (protocol, ip, port) - 只有代理
+                # 2. (protocol, ip, port, username, password) - 有认证
+                # 3. (protocol, ip, port, username, password, country, address) - 完整信息
+                if len(proxy) == 3:
+                    protocol, ip, port = proxy
+                    conn.pushNewFetch(fetcher_name, protocol, ip, port)
+                elif len(proxy) == 5:
+                    protocol, ip, port, username, password = proxy
+                    conn.pushNewFetch(fetcher_name, protocol, ip, port, username, password)
+                elif len(proxy) == 7:
+                    protocol, ip, port, username, password, country, address = proxy
+                    conn.pushNewFetch(fetcher_name, protocol, ip, port, username, password, country, address)
+                else:
+                    logger.warning(f'爬取器{fetcher_name}返回了格式错误的代理: {proxy}，长度={len(proxy)}')
             conn.pushFetcherResult(fetcher_name, len(proxies))
         
         logger.info(f'完成运行{len(threads)}个爬取器，睡眠{PROC_FETCHER_SLEEP}秒')

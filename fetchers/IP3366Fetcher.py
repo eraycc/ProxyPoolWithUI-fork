@@ -27,24 +27,34 @@ class IP3366Fetcher(BaseFetcher):
         port_regex = re.compile(r'^\d+$')
 
         for url in urls:
-            headers = {
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
-                'Accept-Encoding': 'gzip, deflate',
-                'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
-                'Cache-Control': 'no-cache',
-                'Connection': 'keep-alive',
-                'Pragma': 'no-cache',
-                'Upgrade-Insecure-Requests': '1',
-                'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/79.0.3945.130 Chrome/79.0.3945.130 Safari/537.36'
-            }
-            html = requests.get(url, headers=headers, timeout=10).text
-            doc = pq(html)
-            for line in doc('tr').items():
-                tds = list(line('td').items())
-                if len(tds) == 7:
-                    ip = tds[0].text().strip()
-                    port = tds[1].text().strip()
-                    if re.match(ip_regex, ip) is not None and re.match(port_regex, port) is not None:
-                        proxies.append(('http', ip, int(port)))
+            try:
+                headers = {
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+                    'Accept-Encoding': 'gzip, deflate',
+                    'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+                    'Cache-Control': 'no-cache',
+                    'Connection': 'keep-alive',
+                    'Pragma': 'no-cache',
+                    'Upgrade-Insecure-Requests': '1',
+                    'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/79.0.3945.130 Chrome/79.0.3945.130 Safari/537.36'
+                }
+                response = requests.get(url, headers=headers, timeout=10)
+                html = response.text
+                
+                # Check if response is empty or invalid
+                if not html or len(html.strip()) == 0:
+                    continue
+                    
+                doc = pq(html)
+                for line in doc('tr').items():
+                    tds = list(line('td').items())
+                    if len(tds) == 7:
+                        ip = tds[0].text().strip()
+                        port = tds[1].text().strip()
+                        if re.match(ip_regex, ip) is not None and re.match(port_regex, port) is not None:
+                            proxies.append(('http', ip, int(port)))
+            except Exception as e:
+                # Skip this URL if there's an error and continue with others
+                continue
         
         return list(set(proxies))

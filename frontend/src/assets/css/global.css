@@ -1,0 +1,327 @@
+/* 全局样式和主题配置 */
+
+:root {
+  --primary-color: #1890ff;
+  --success-color: #52c41a;
+  --warning-color: #faad14;
+  --error-color: #f5222d;
+  --info-color: #1890ff;
+  
+  --bg-primary: #f0f2f5;
+  --bg-secondary: #ffffff;
+  --bg-card: #ffffff;
+  
+  --text-primary: rgba(0, 0, 0, 0.85);
+  --text-secondary: rgba(0, 0, 0, 0.65);
+  --text-disabled: rgba(0, 0, 0, 0.25);
+  
+  --border-color: #d9d9d9;
+  --border-radius: 8px;
+  --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.09);
+  --box-shadow-hover: 0 4px 16px rgba(0, 0, 0, 0.12);
+  
+  --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 深色模式支持 */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-primary: #141414;
+    --bg-secondary: #1f1f1f;
+    --bg-card: #1f1f1f;
+    
+    --text-primary: rgba(255, 255, 255, 0.85);
+    --text-secondary: rgba(255, 255, 255, 0.65);
+    --text-disabled: rgba(255, 255, 255, 0.25);
+    
+    --border-color: #434343;
+  }
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue',
+    Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+    'Segoe UI Symbol', 'Noto Color Emoji';
+  font-size: 14px;
+  line-height: 1.5715;
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+/* 滚动条美化 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #bfbfbf;
+  border-radius: 4px;
+  transition: background var(--transition-fast);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #999;
+}
+
+/* 选中文本样式 */
+::selection {
+  background: var(--primary-color);
+  color: #fff;
+}
+
+/* 通用动画 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideInUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInDown {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+/* 工具类 */
+.fade-in {
+  animation: fadeIn var(--transition-normal);
+}
+
+.slide-in-up {
+  animation: slideInUp var(--transition-normal);
+}
+
+.slide-in-down {
+  animation: slideInDown var(--transition-normal);
+}
+
+.scale-in {
+  animation: scaleIn var(--transition-normal);
+}
+
+.loading-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.2) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite;
+}
+
+/* 卡片增强 */
+.enhanced-card {
+  background: var(--bg-card);
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  transition: all var(--transition-normal);
+  overflow: hidden;
+}
+
+.enhanced-card:hover {
+  box-shadow: var(--box-shadow-hover);
+  transform: translateY(-2px);
+}
+
+/* 按钮增强 */
+.enhanced-button {
+  transition: all var(--transition-fast);
+  position: relative;
+  overflow: hidden;
+}
+
+.enhanced-button::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.enhanced-button:active::before {
+  width: 300px;
+  height: 300px;
+}
+
+/* 徽章动画 */
+.badge-pulse {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+/* 状态指示器 */
+.status-indicator {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 8px;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.status-indicator.online {
+  background: var(--success-color);
+}
+
+.status-indicator.offline {
+  background: var(--error-color);
+}
+
+.status-indicator.warning {
+  background: var(--warning-color);
+}
+
+/* 响应式工具类 */
+@media (max-width: 768px) {
+  html {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 576px) {
+  html {
+    font-size: 12px;
+  }
+}
+
+/* 加载骨架屏 */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    #f0f0f0 25%,
+    #e0e0e0 50%,
+    #f0f0f0 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+
+/* 页面过渡 */
+.page-enter-active,
+.page-leave-active {
+  transition: all var(--transition-normal);
+}
+
+.page-enter-from {
+  opacity: 0;
+  transform: translateX(-10px);
+}
+
+.page-leave-to {
+  opacity: 0;
+  transform: translateX(10px);
+}
+
+/* 悬停效果增强 */
+.hover-lift {
+  transition: transform var(--transition-normal);
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px);
+}
+
+/* 渐变背景 */
+.gradient-bg {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.gradient-bg-blue {
+  background: linear-gradient(135deg, #667eea 0%, #1890ff 100%);
+}
+
+.gradient-bg-green {
+  background: linear-gradient(135deg, #52c41a 0%, #95de64 100%);
+}
+
+/* 玻璃态效果 */
+.glass-effect {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* 文字渐变 */
+.gradient-text {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
