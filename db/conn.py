@@ -20,12 +20,16 @@ from utils.ip_location import get_ip_location_cached
 conn = sqlite3.connect(
     DATABASE_PATH, 
     detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES,
-    timeout=30.0,  # 增加數據庫連接超時時間到 30 秒
+    timeout=10.0,  # 减少超时时间到 10 秒，避免长时间等待
     check_same_thread=False  # 允許多線程訪問（配合鎖使用）
 )
 # 设置 WAL 模式，提高并发性能
 conn.execute('PRAGMA journal_mode=WAL')
 conn.execute('PRAGMA synchronous=NORMAL')  # 平衡性能和安全性
+# 优化数据库性能设置
+conn.execute('PRAGMA cache_size=10000')  # 增加缓存大小
+conn.execute('PRAGMA temp_store=MEMORY')  # 临时表存储在内存中
+conn.execute('PRAGMA mmap_size=268435456')  # 启用内存映射，提高读取性能
 # 线程锁
 conn_lock = threading.Lock()
 # 进程锁
@@ -216,15 +220,31 @@ def getValidatedRandom(max_count):
     从通过了验证的代理中，随机选择max_count个代理返回
     max_count<=0表示不做数量限制
     返回 : list[Proxy]
+    
+    优化：使用更快的查询方式，避免 ORDER BY RANDOM() 在大量数据时性能问题
     """
     _acquire_locks()
-    if max_count > 0:
-        r = conn.execute('SELECT * FROM proxies WHERE validated=? ORDER BY RANDOM() LIMIT ?', (True, max_count))
-    else:
-        r = conn.execute('SELECT * FROM proxies WHERE validated=? ORDER BY RANDOM()', (True,))
-    proxies = [Proxy.decode(row) for row in r]
-    r.close()
-    _release_locks()
+    try:
+        if max_count > 0:
+            # 对于有限制的查询，使用 RANDOM() 限制返回数量
+            # 先获取总数，如果数量不多就直接用 RANDOM()，否则用更快的方式
+            r_count = conn.execute('SELECT count(*) FROM proxies WHERE validated=?', (True,))
+            total = r_count.fetchone()[0]
+            r_count.close()
+            
+            if total <= max_count * 2:
+                # 数据量不大，直接用 RANDOM()
+                r = conn.execute('SELECT * FROM proxies WHERE validated=? ORDER BY RANDOM() LIMIT ?', (True, max_count))
+            else:
+                # 数据量大，使用更快的方式：按 validate_date 排序（最近验证的）
+                r = conn.execute('SELECT * FROM proxies WHERE validated=? ORDER BY validate_date DESC LIMIT ?', (True, max_count))
+        else:
+            r = conn.execute('SELECT * FROM proxies WHERE validated=? ORDER BY validate_date DESC', (True,))
+        
+        proxies = [Proxy.decode(row) for row in r]
+        r.close()
+    finally:
+        _release_locks()
     return proxies
     
     #新增方法

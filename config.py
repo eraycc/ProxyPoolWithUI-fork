@@ -30,3 +30,22 @@ VALIDATE_HEADER = 'location' # 仅用于HEAD验证方式，百度响应头Server
 VALIDATE_KEYWORD = 'www.qq.com'
 VALIDATE_TIMEOUT = 5 # 超时时间，单位s
 VALIDATE_MAX_FAILS = 3
+
+# ============= 认证配置 =============
+
+# JWT密钥 - 用于签名Token，请在生产环境中修改为强密钥
+JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY', 'your-secret-key-change-it-in-production-2025')
+
+# Token过期时间（小时）
+TOKEN_EXPIRATION_HOURS = 24
+
+# 默认管理员账户
+# 首次启动会自动创建，用户名：admin，密码：admin123
+# 登录后请立即修改密码
+
+# 初始化认证管理器
+from auth import AuthManager
+auth_manager = AuthManager(
+    secret_key=JWT_SECRET_KEY,
+    token_expiration_hours=TOKEN_EXPIRATION_HOURS
+)

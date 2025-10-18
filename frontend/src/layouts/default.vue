@@ -27,7 +27,7 @@
                   <span>系统运行中</span>
                 </div>
                 <div class="info-item version-info">
-                  v2.0.0 | Nuxt 3
+                  v2.0.1 | Nuxt 3
                 </div>
               </div>
             </transition>
@@ -124,6 +124,33 @@
                     <FullscreenExitOutlined v-else />
                   </a-button>
                 </a-tooltip>
+                
+                <a-divider type="vertical" />
+                
+                <a-dropdown>
+                  <a-button type="text" class="user-dropdown">
+                    <UserOutlined />
+                    <span class="username">{{ username }}</span>
+                    <DownOutlined class="dropdown-icon" />
+                  </a-button>
+                  <template #overlay>
+                    <a-menu>
+                      <a-menu-item key="profile" @click="showProfileModal = true">
+                        <UserOutlined />
+                        <span>个人信息</span>
+                      </a-menu-item>
+                      <a-menu-item key="change-password" @click="showPasswordModal = true">
+                        <KeyOutlined />
+                        <span>修改密码</span>
+                      </a-menu-item>
+                      <a-menu-divider />
+                      <a-menu-item key="logout" @click="handleLogout">
+                        <LogoutOutlined />
+                        <span>退出登录</span>
+                      </a-menu-item>
+                    </a-menu>
+                  </template>
+                </a-dropdown>
               </a-space>
             </div>
           </a-layout-header>
@@ -154,6 +181,62 @@
         </a-layout>
       </a-layout>
     </a-config-provider>
+    
+    <!-- 个人信息弹窗 -->
+    <a-modal
+      v-model:open="showProfileModal"
+      title="个人信息"
+      :footer="null"
+      width="400px"
+    >
+      <a-descriptions :column="1" bordered size="small">
+        <a-descriptions-item label="用户名">
+          {{ username }}
+        </a-descriptions-item>
+        <a-descriptions-item label="角色">
+          <a-tag :color="userRole === 'admin' ? 'red' : 'blue'">
+            {{ userRole === 'admin' ? '管理员' : '用户' }}
+          </a-tag>
+        </a-descriptions-item>
+      </a-descriptions>
+    </a-modal>
+    
+    <!-- 修改密码弹窗 -->
+    <a-modal
+      v-model:open="showPasswordModal"
+      title="修改密码"
+      @ok="handleChangePassword"
+      @cancel="resetPasswordForm"
+      :confirmLoading="passwordLoading"
+    >
+      <a-form
+        :model="passwordForm"
+        :label-col="{ span: 6 }"
+        :wrapper-col="{ span: 18 }"
+      >
+        <a-form-item label="旧密码" required>
+          <a-input-password
+            v-model:value="passwordForm.oldPassword"
+            placeholder="请输入旧密码"
+            autocomplete="current-password"
+          />
+        </a-form-item>
+        <a-form-item label="新密码" required>
+          <a-input-password
+            v-model:value="passwordForm.newPassword"
+            placeholder="请输入新密码（至少6位）"
+            autocomplete="new-password"
+          />
+        </a-form-item>
+        <a-form-item label="确认密码" required>
+          <a-input-password
+            v-model:value="passwordForm.confirmPassword"
+            placeholder="请再次输入新密码"
+            autocomplete="new-password"
+          />
+        </a-form-item>
+      </a-form>
+    </a-modal>
   </div>
 </template>
 
@@ -173,19 +256,37 @@ import {
   HomeOutlined,
   ReloadOutlined,
   FullscreenOutlined,
-  FullscreenExitOutlined
+  FullscreenExitOutlined,
+  UserOutlined,
+  DownOutlined,
+  LogoutOutlined,
+  KeyOutlined
 } from '@ant-design/icons-vue'
 import moment from 'moment'
+import { message, Modal } from 'ant-design-vue'
 
 moment.locale('zh-cn')
 
 const locale = zhCN
 const route = useRoute()
 const router = useRouter()
+// @ts-ignore
+const { $http } = useNuxtApp()
+
 const collapsed = ref(false)
 const urlPath = ref<string[]>([])
 const isFullscreen = ref(false)
 const proxyCount = ref(0)
+const username = ref('admin')
+const userRole = ref('admin')
+const showProfileModal = ref(false)
+const showPasswordModal = ref(false)
+const passwordLoading = ref(false)
+const passwordForm = ref({
+  oldPassword: '',
+  newPassword: '',
+  confirmPassword: ''
+})
 
 // 页面标题
 const pageTitle = computed(() => {
@@ -230,10 +331,117 @@ if (process.client) {
   })
 }
 
+// 退出登录
+const handleLogout = () => {
+  Modal.confirm({
+    title: '确认退出',
+    content: '确定要退出登录吗？',
+    okText: '确定',
+    cancelText: '取消',
+    onOk: () => {
+      // 清除本地存储
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+      
+      message.success('退出成功')
+      
+      // 跳转到登录页
+      setTimeout(() => {
+        router.push('/login')
+      }, 500)
+    }
+  })
+}
+
+// 修改密码
+const handleChangePassword = async () => {
+  // 验证表单
+  if (!passwordForm.value.oldPassword) {
+    message.error('请输入旧密码')
+    return
+  }
+  
+  if (!passwordForm.value.newPassword) {
+    message.error('请输入新密码')
+    return
+  }
+  
+  if (passwordForm.value.newPassword.length < 6) {
+    message.error('新密码长度至少6位')
+    return
+  }
+  
+  if (passwordForm.value.newPassword !== passwordForm.value.confirmPassword) {
+    message.error('两次输入的新密码不一致')
+    return
+  }
+  
+  passwordLoading.value = true
+  
+  try {
+    await $http.post('/auth/change_password', {
+      old_password: passwordForm.value.oldPassword,
+      new_password: passwordForm.value.newPassword
+    })
+    
+    message.success('密码修改成功，请重新登录')
+    
+    // 清除本地存储
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+    
+    // 关闭弹窗
+    showPasswordModal.value = false
+    
+    // 跳转到登录页
+    setTimeout(() => {
+      router.push('/login')
+    }, 1000)
+  } catch (error: any) {
+    message.error(error.message || '密码修改失败')
+  } finally {
+    passwordLoading.value = false
+  }
+}
+
+// 重置密码表单
+const resetPasswordForm = () => {
+  passwordForm.value = {
+    oldPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  }
+}
+
+// 加载用户信息
+const loadUserInfo = () => {
+  if (process.client) {
+    const token = localStorage.getItem('token')
+    // 如果没有token，不加载用户信息
+    if (!token) {
+      return
+    }
+    
+    const userStr = localStorage.getItem('user')
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr)
+        username.value = user.username || 'Guest'
+        userRole.value = user.role || 'user'
+      } catch (e) {
+        console.error('解析用户信息失败:', e)
+        username.value = 'Guest'
+        userRole.value = 'user'
+      }
+    }
+  }
+}
+
 watch(() => route.path, updateNav)
 
 onMounted(() => {
   updateNav()
+  loadUserInfo()
 })
 </script>
 
@@ -454,6 +662,31 @@ onMounted(() => {
 
 .footer-right a:hover {
   color: #1890ff;
+}
+
+/* 用户下拉菜单 */
+.user-dropdown {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  color: rgba(0, 0, 0, 0.85);
+  font-size: 14px;
+  transition: all 0.3s;
+}
+
+.user-dropdown:hover {
+  color: #1890ff;
+  background: rgba(24, 144, 255, 0.05);
+}
+
+.username {
+  font-weight: 500;
+}
+
+.dropdown-icon {
+  font-size: 12px;
+  margin-left: 4px;
 }
 
 /* 过渡动画 */

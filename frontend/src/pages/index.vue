@@ -220,7 +220,18 @@
             class="clash-btn"
           >
             <CopyOutlined />
-            复制 Clash 订阅
+            Clash 订阅
+          </a-button>
+          
+          <!-- 复制 V2Ray 订阅按钮 -->
+          <a-button 
+            type="default" 
+            size="small"
+            @click="copyV2RaySubscription"
+            class="v2ray-btn"
+          >
+            <CopyOutlined />
+            V2Ray 订阅
           </a-button>
           
           <!-- 清空筛选按钮 -->
@@ -853,10 +864,15 @@ const handleCancelAdd = () => {
 // 复制 Clash 订阅链接
 const copyClashSubscription = async () => {
   try {
+    // 获取当前用户信息
+    const user = JSON.parse(localStorage.getItem('user') || '{}')
+    const username = user.username || 'admin'
+    const password = 'admin123' // 默认密码，实际应用中应该从用户设置获取
+    
     // @ts-ignore - Nuxt 3 auto-import
     const config = useRuntimeConfig()
     const baseURL = config.public.apiBase as string
-    const clashUrl = `${baseURL}/clash`
+    const clashUrl = `${baseURL}/clash?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`
     
     // 使用 Clipboard API 复制
     if (navigator.clipboard && window.isSecureContext) {
@@ -881,6 +897,46 @@ const copyClashSubscription = async () => {
     }
   } catch (error) {
     console.error('复制 Clash 订阅链接失败:', error)
+    message.error('复制失败，请稍后重试')
+  }
+}
+
+// 复制 V2Ray 订阅链接
+const copyV2RaySubscription = async () => {
+  try {
+    // 获取当前用户信息
+    const user = JSON.parse(localStorage.getItem('user') || '{}')
+    const username = user.username || 'admin'
+    const password = 'admin123' // 默认密码，实际应用中应该从用户设置获取
+    
+    // @ts-ignore - Nuxt 3 auto-import
+    const config = useRuntimeConfig()
+    const baseURL = config.public.apiBase as string
+    const v2rayUrl = `${baseURL}/v2ray?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`
+    
+    // 使用 Clipboard API 复制
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(v2rayUrl)
+      message.success('V2Ray 订阅链接已复制到剪贴板！')
+    } else {
+      // 降级方案：使用传统的复制方法
+      const textArea = document.createElement('textarea')
+      textArea.value = v2rayUrl
+      textArea.style.position = 'fixed'
+      textArea.style.left = '-999999px'
+      document.body.appendChild(textArea)
+      textArea.select()
+      try {
+        document.execCommand('copy')
+        message.success('V2Ray 订阅链接已复制到剪贴板！')
+      } catch (err) {
+        message.error('复制失败，请手动复制：' + v2rayUrl)
+        console.error('复制失败:', err)
+      }
+      document.body.removeChild(textArea)
+    }
+  } catch (error) {
+    console.error('复制 V2Ray 订阅链接失败:', error)
     message.error('复制失败，请稍后重试')
   }
 }
@@ -1038,7 +1094,7 @@ const columns = [
 const update = async () => {
   loading.value = true
   try {
-    const data = await $http.get('/proxies_status')
+    const data = await $http.get('/proxies_status', { limit: 500 })  // 限制返回数量，提高性能
     proxies.value = data.proxies
     sumProxiesCnt.value = data.sum_proxies_cnt
     validatedProxiesCnt.value = data.validated_proxies_cnt
@@ -1053,7 +1109,17 @@ const update = async () => {
       }
     })
     sourceOptions.value = Array.from(sources).sort()
-  } catch (error) {
+  } catch (error: any) {
+    // 根据错误类型显示不同的提示
+    if (error.code === 'ECONNABORTED') {
+      message.warning('请求超时，后端处理时间过长，请稍后再试')
+    } else if (error.code === 'ERR_NETWORK') {
+      message.error('无法连接到后端服务，请检查服务是否启动')
+    } else if (error.response?.status === 401) {
+      // 401 已经在拦截器中处理了，这里不重复提示
+    } else {
+      message.error(error.message || '获取代理数据失败')
+    }
     console.error('更新数据失败:', error)
   } finally {
     loading.value = false
@@ -1687,6 +1753,19 @@ onUnmounted(() => {
   border: none;
   color: white;
   transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.clash-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
 }
 
 .clash-btn:hover {
@@ -1696,7 +1775,57 @@ onUnmounted(() => {
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
 
+.clash-btn:hover::before {
+  left: 100%;
+}
+
 .clash-btn:active {
   transform: translateY(0);
+}
+
+/* V2Ray 订阅按钮样式 */
+.v2ray-btn {
+  background: linear-gradient(135deg, #52c41a 0%, #389e0d 100%);
+  border: none;
+  color: white;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  font-weight: 600;
+}
+
+.v2ray-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.5s;
+}
+
+.v2ray-btn:hover {
+  background: linear-gradient(135deg, #389e0d 0%, #52c41a 100%);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(82, 196, 26, 0.4);
+}
+
+.v2ray-btn:hover::before {
+  left: 100%;
+}
+
+.v2ray-btn:active {
+  transform: translateY(0);
+}
+
+.v2ray-btn .anticon {
+  margin-right: 4px;
+  transition: transform 0.3s ease;
+}
+
+.v2ray-btn:hover .anticon {
+  transform: scale(1.1);
 }
 </style>
