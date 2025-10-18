@@ -11,6 +11,7 @@
 - 🌐 **多协议支持** - HTTP、HTTPS、SOCKS4、SOCKS5
 - 🎨 **现代化 UI** - 基于 Nuxt 3 + Vue 3 + Ant Design Vue
 - ⚡ **Clash 订阅** - 一键导入 Clash，支持 50+ 国家节点筛选
+- 🚀 **V2Ray 订阅** - 支持 V2Ray 客户端，Base64 编码格式
 - 🔄 **实时监控** - 代理状态、爬取器状态实时展示
 - 📍 **地理位置** - 自动识别代理 IP 归属地（国家/城市）
 - 🛠️ **手动添加** - 支持手动添加自有代理
@@ -119,7 +120,7 @@ curl -X POST http://localhost:5000/auth/change_password \
 
 ## 📡 API 接口
 
-> ⚠️ **注意**: 除了 `/ping`、`/fetch_*` 和 `/clash*` 等代理获取接口外，其他管理接口均需要认证。
+> ⚠️ **注意**: 除了 `/ping`、`/fetch_*`、`/clash*` 和 `/v2ray` 等代理获取接口外，其他管理接口均需要认证。
 
 ### 基础接口
 
@@ -139,10 +140,16 @@ curl -X POST http://localhost:5000/auth/change_password \
 | `/clash` | 获取 Clash 完整订阅配置 | `c`, `nc`, `protocol`, `limit` |
 | `/clash/proxies` | 获取 Clash 代理节点列表 | `c`, `nc`, `protocol`, `limit` |
 
+### V2Ray 订阅接口
+
+| 接口 | 说明 | 参数 |
+|------|------|------|
+| `/v2ray` | 获取 V2Ray 订阅配置（Base64 编码） | `c`, `nc`, `protocol`, `limit` |
+
 **参数说明：**
 - `c` - 按国家筛选（如：`c=CN,US,JP`）
 - `nc` - 排除指定国家（如：`nc=CN`）
-- `protocol` - 筛选协议类型（`http`/`https`/`socks5`）
+- `protocol` - 筛选协议类型（`http`/`https`/`socks4`/`socks5`）
 - `limit` - 限制返回数量（如：`limit=50`）
 
 **支持的国家代码：** CN、HK、TW、US、CA、JP、SG、AU、RU、CH、DE、FR、GB、NL 等 50+ 个
@@ -151,15 +158,19 @@ curl -X POST http://localhost:5000/auth/change_password \
 ```bash
 # 获取所有代理
 http://localhost:5000/clash
+http://localhost:5000/v2ray
 
 # 仅获取美国和日本的代理，限制 50 个
 http://localhost:5000/clash?c=US,JP&limit=50
+http://localhost:5000/v2ray?c=US,JP&limit=50
 
 # 排除中国大陆的代理
 http://localhost:5000/clash?nc=CN
+http://localhost:5000/v2ray?nc=CN
 
 # 仅获取 SOCKS5 代理
 http://localhost:5000/clash?protocol=socks5
+http://localhost:5000/v2ray?protocol=socks5
 ```
 
 ## 🎯 Clash 使用指南
@@ -191,6 +202,44 @@ http://localhost:5000/clash?protocol=socks5
 2. **限制数量** - 使用 `limit` 参数限制代理数量（推荐 20-50 个）
 3. **自动测试** - 启用 Clash 自动测试，选择最快的代理
 4. **节点名称** - 自动显示国家 emoji 和 IP（如：🇨🇳 中国+1.2.3.4）
+
+## 🚀 V2Ray 使用指南
+
+### 方法 A：直接订阅（推荐）
+
+1. 打开 V2Ray 客户端（如 V2RayN、V2RayX、Qv2ray 等）
+2. 进入「订阅」或「Subscription」
+3. 添加订阅链接：`http://localhost:5000/v2ray`
+4. 点击更新订阅并启用
+
+### 方法 B：手动导入
+
+1. 访问：http://localhost:5000/v2ray
+2. 复制返回的 Base64 编码内容
+3. 在 V2Ray 客户端中导入订阅
+
+### 支持的 V2Ray 客户端
+
+- ✅ V2RayN (Windows)
+- ✅ V2RayX (macOS)
+- ✅ Qv2ray (跨平台)
+- ✅ V2RayNG (Android)
+- ✅ Shadowrocket (iOS)
+- ✅ ClashX (macOS)
+
+### 代理格式说明
+
+V2Ray 订阅支持以下代理格式：
+- **HTTP/HTTPS 代理** - 转换为 VMess 格式
+- **SOCKS4/SOCKS5 代理** - 转换为 socks:// 格式
+- **认证信息** - 自动处理用户名密码认证
+
+### 使用建议
+
+1. **定期更新** - 建议设置自动更新订阅（每 6 小时）
+2. **限制数量** - 使用 `limit` 参数限制代理数量（推荐 20-50 个）
+3. **协议选择** - 根据网络环境选择合适的协议类型
+4. **节点测试** - 启用 V2Ray 自动测试，选择最快的代理
 
 ## 🐍 Python 使用示例
 
@@ -497,7 +546,13 @@ A: 不建议禁用认证。如果确实需要，可以在 `api/api.py` 中移除
 ### Q: API 接口需要认证吗？
 A: 
 - **需要认证**：所有管理接口（代理状态、爬取器管理、添加代理等）
-- **无需认证**：代理获取接口（`/fetch_*`、`/clash*`）和健康检查（`/ping`）
+- **无需认证**：代理获取接口（`/fetch_*`、`/clash*`、`/v2ray`）和健康检查（`/ping`）
+
+### Q: 支持哪些订阅格式？
+A: 
+- **Clash 订阅**：`/clash` - 返回 YAML 格式配置
+- **V2Ray 订阅**：`/v2ray` - 返回 Base64 编码的代理链接
+- **代理列表**：`/clash/proxies` - 仅返回 Clash 代理节点列表
 
 ### Q: 提示"检测到已有实例在运行"？
 A: 系统具备单实例保护机制。如果确定没有其他实例运行，可以手动清理锁文件：
@@ -558,13 +613,13 @@ python main.py
 
 ---
 
-**版本**: 2.1.0  
+**版本**: 2.0.1  
 **更新时间**: 2025-10-18  
 **状态**: ✅ 生产就绪
 
 ## 🔄 更新日志
 
-### v2.1.0 (2025-10-18)
+### v2.0.1 (2025-10-18)
 - ✨ 新增 JWT Token 登录鉴权功能
 - 🔐 所有管理接口添加认证保护
 - 👤 用户管理：登录、修改密码
