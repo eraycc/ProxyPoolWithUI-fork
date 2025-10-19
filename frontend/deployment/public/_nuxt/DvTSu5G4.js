@@ -1,0 +1,1 @@
+import{_ as t,c as o,o as s,X as c}from"#entry";const a={},n={class:"empty-layout"};function r(e,_){return s(),o("div",n,[c(e.$slots,"default",{},void 0)])}const f=t(a,[["render",r],["__scopeId","data-v-f4f82991"]]);export{f as default};
